@@ -35,9 +35,22 @@
 	require_once('lexer.php');
 	
 	$lex=new lexer();
+	$lex->addWhite = true;
 	$lex->load(file_get_contents('example.txt'));
 	echo '<table><tr><td>Имя</td><td>Тип</td><td>Строка</td></tr>';
-	while($lex->next())
+	while($lex->next)
+	{
+		echo "<tr><td>$T_NAME</td>";
+		echo "<td class='type$T_TYPE'>$_DEBUG_NAME_TYPE[$T_TYPE]</td>";
+		echo "<td>$T_LINE</td></tr>";
+	}
+	echo '</table>';
+	echo "<hr>";
+	
+	$lex->reset;
+	
+	echo '<table><tr><td>Имя</td><td>Тип</td><td>Строка</td></tr>';
+	while($lex->next)
 	{
 		echo "<tr><td>$T_NAME</td>";
 		echo "<td class='type$T_TYPE'>$_DEBUG_NAME_TYPE[$T_TYPE]</td>";

@@ -1,12 +1,12 @@
-Test=123;
+Test = 123;
 /* dgfbr
 ewrthh
 2345
 */
 alert(Test+123/234); // okey
 //wert
-/*dfg */ work!=123;
-asdf="123
+work!=123;
+	asdf = "123
 sdf"
 <script src="js/exec.js"></script>
 <script src=12></script>
