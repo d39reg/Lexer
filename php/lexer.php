@@ -30,7 +30,7 @@
 		
 		public $LINE_N=1;
 		public $LINE_I=-1;
-		public $LINE=array();
+		public $LINE=array(1);
 		
 		public $addQuote = false;
 		public $addWhite = false;
@@ -53,7 +53,7 @@
 
 		public function load($code)
 		{
-			$this->DATA=$code.' ';
+			$this->DATA = $code;
 			$this->I=-1;
 			$this->LEN=strlen($code);
 			$this->token='';
@@ -61,8 +61,8 @@
 			$this->type=null;
 			$array=array();
 			$i=-1;
-			$this->_next();
 			
+			$this->_next();
 			while ($this->type != END)
 			{
 				$array[++$i] = array(
@@ -93,19 +93,23 @@
 			
 			if ($property == 'next' || $property == 'current' || $property == 'back')
 			{
+				next__:
 				switch ($property)
 				{
 					case 'next':
 						if (++$this->cur_next>=$this->BLEN)--$this->cur_next;
 						$token = $this->data_arr[$this->cur_next];
+						if (!$this->addWhite && $token[1] == WHT) goto next__;
 						break;
 					case 'current':
 						if ($this->cur_next<0)$this->cur_next=0;
 						$token = $this->data_arr[$this->cur_next];
+						if (!$this->addWhite && $token[1] == WHT) goto next__;
 						break;
 					case 'back':
 						if (--$this->cur_next<0)$this->cur_next=0;
 						$token = $this->data_arr[$this->cur_next];
+						if (!$this->addWhite && $token[1] == WHT) goto next__;
 						break;
 				}
 				
@@ -172,19 +176,17 @@
 		
 		public function current_line()
 		{
-			return $this->LINE[$this->LINE_I];
+			return $this->LINE[$this->LINE_I<0?0:$this->LINE_I];
 		}
 		
 		public function back_line()
 		{
-			if (--$this->LINE_I<0)return $this->LINE[++$this->LINE_I];
-			return $this->LINE[$this->LINE_I];
+			return $this->LINE[--$this->LINE_I<0?++$this->LINE_I:$this->LINE_I];
 		}
 		
 		public function next_line()
 		{
-			if (++$this->LINE_I>=count($this->LINE))return $this->LINE[--$this->LINE_I];
-			return $this->LINE[$this->LINE_I];
+			return $this->LINE[++$this->LINE_I>=count($this->LINE)?--$this->LINE_I:$this->LINE_I];
 		}
 		
 		private function _next()
@@ -323,7 +325,7 @@
 				$this->type=END; 
 				return $this->token='';
 			}
-			elseif ($this->_strchr(';(,)}{[]+.*/:^%?$@',$s))
+			elseif ($this->_strchr(';(,)}{[]+-.*/:^%?$@',$s))
 			{
 				$this->type=IND;
 				$this->I=$i;
@@ -341,90 +343,54 @@
 				--$i;
 				$this->type=IND;
 			} 
-			elseif ($this->number($s)||$s == '-')
+			elseif ($this->number($s))
 			{
-				if ($s == '-')
-				{
-					$token[++$ii]=$s;
-					if ($l<=++$i) break;
-					$s=$data[$i];
-				}
-				$this->cmd_hex=false;
-				$beg_sym=$s;
+				$this->cmd_hex = false;
+				$beg_sym = $s;
 				
 				while ($this->number($s)||$s == '.')
 				{
-					$token[++$ii]=$s;
-					if ($l<=++$i) break;
-					$s=$data[$i];
+					$token[++$ii] = $s;
+					if ($l <= ++$i) break;
+					$s = $data[$i];
 					if (!$ii&&$beg_sym == '0')
 					{
 						if($s == 'x'||$s == 'X')
 						{
-							$this->cmd_hex=true;
+							$this->cmd_hex = true;
 							if ($l<=++$i) break;
-							$s=$data[$i];
+							$s = $data[$i];
 							--$ii;
 						}
 						elseif($s == 'b'||$s == 'B')
 						{
-							$this->cmd_bin=true;
+							$this->cmd_bin = true;
 							if ($l<=++$i) break;
-							$s=$data[$i];
+							$s = $data[$i];
 							--$ii;
 						}
 					}
 				}
-				if ($this->cmd&CONVERT_ON&&$this->cmd_hex)
+				if($this->cmd_hex)
 				{
-					$tmp=hexdec(implode('',$token));
-					$token=array();
-					$token[0]=$tmp;
+					$tmp = implode('',$token);
+					if ($this->cmd&CONVERT_ON) $tmp = hexdec($tmp);
+					$token = array();
+					$token[0] = '0x'.$tmp;
 				}
 				--$i;
 				$this->type=DEC;
 			} 
 			elseif ($this->word($s))
 			{
-				$this->type=VRS;
 				while ($this->word($s)||$this->number($s))
 				{
 					$token[++$ii]=$s;
-					if ($l<=++$i) break;
+					if ($l <= ++$i) break;
 					$s=$data[$i];
 				}
-				if ($i+1 < $l)
-				{
-					if ($this->white($data[$i+1]))
-					{
-						if ($this->white($s))
-						{
-							do
-							{
-								if ($this->addWhite) $token[++$ii] = $s;
-								if (++$i >= $l)
-								{
-									$this->I=$i;
-									$this->token='';
-									$this->type=END;
-									return '';
-								}
-								$s = $data[$i];
-							}
-							while ($this->white($s));
-							
-							if ($this->addWhite)
-							{
-								--$i;
-								$this->type = WHT;
-								$this->LINE[++$this->LINE_I] = $this->LINE_N;
-								goto end_func;
-							}
-							
-						}
-					}
-					if ($s == '(') $this->type=FNC;
-				}
+				if ($i+1 < $l && $s == '(') $this->type=FNC;
+				else $this->type=VRS;
 				--$i;
 			} 
 			elseif ($s == '"'||$s == '\'')

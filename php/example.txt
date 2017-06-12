@@ -1,13 +1,16 @@
-Test = 123;
-/* dgfbr
+12-Test  -= 123asd;//] []
+1/* dgfbr
 ewrthh
 2345
-*/
-alert(Test+123/234); // okey
+*/2[sdf]
+alert(Test+123/234); // okey // dfg
 //wert
-work!=123;
+work!=0x123;
 	asdf = "123
 sdf"
-<script src="js/exec.js"></script>
+<script
+	src="js/exec.
+	js"></script
+		>
 <script src=12></script>
 <script type="HEXScript">FFF</script>
