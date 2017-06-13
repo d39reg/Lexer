@@ -43,7 +43,7 @@
 	}
 	
 	$lex=new lexer();
-	//$lex->addWhite = true;
+	$lex->addWhite = true;
 	$lex->load(fload('example.txt'));
 	echo '<table><tr><td>Имя</td><td>Тип</td><td>Строка</td></tr>';
 	while($lex->next)

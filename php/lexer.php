@@ -247,13 +247,17 @@
 						$tmp = $data[$i];
 						while ($tmp != "\n")
 						{
-							$token[++$ii]=$tmp;
-							if ($tmp == "\n")break;
 							if ($l<=++$i)
 							{
 								if (!($this->cmd&COMENT_ON))goto beg1;
 								goto end_func;
 							}
+							if ($tmp == "\r")
+							{
+								if ($data[$i] != "\n") --$i;
+								break;
+							}
+							$token[++$ii]=$tmp;
 							$tmp = $data[$i];
 						}
 						++$this->LINE_N;
