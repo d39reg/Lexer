@@ -1,11 +1,11 @@
-<?php
-	// Ãëîáàëüíûå ïåðåìåííûå
+ï»¿<?php
+	// Ð“Ð»Ð¾Ð±Ð°Ð»ÑŒÐ½Ñ‹Ðµ Ð¿ÐµÑ€ÐµÐ¼ÐµÐ½Ð½Ñ‹Ðµ
 	$T_NAME  = '';
 	$T_TYPE  = 0;
 	$T_LINE  = 0;
 	$T_QUOTE = '';
 	
-	// Òèï òîêåíà (ñïèñîê)
+	// Ð¢Ð¸Ð¿ Ñ‚Ð¾ÐºÐµÐ½Ð° (ÑÐ¿Ð¸ÑÐ¾Ðº)
 	define('END'       ,0);
 	define('DEC'       ,1);
 	define('STR'       ,2);
@@ -22,9 +22,9 @@
 	define('CONVERT_ON',2);
 	
 	//Debug
-	$_DEBUG_NAME_TYPE = array('Çàâåðøåíèå','×èñëî','Ñòðîêà','Ôóíêöèÿ','Ïåðåìåííàÿ','Èäåíòèôèêàòîð','Êîììåíòàðèé îäíîñòðî÷íûé','Êîììåíòàðèé ìíîãîñòðî÷íûé','','Ïðîáåëüíûå ñèìâîëû');
+	$_DEBUG_NAME_TYPE = array('Ð—Ð°Ð²ÐµÑ€ÑˆÐµÐ½Ð¸Ðµ','Ð§Ð¸ÑÐ»Ð¾','Ð¡Ñ‚Ñ€Ð¾ÐºÐ°','Ð¤ÑƒÐ½ÐºÑ†Ð¸Ñ','ÐŸÐµÑ€ÐµÐ¼ÐµÐ½Ð½Ð°Ñ','Ð˜Ð´ÐµÐ½Ñ‚Ð¸Ñ„Ð¸ÐºÐ°Ñ‚Ð¾Ñ€','','ÐšÐ¾Ð¼Ð¼ÐµÐ½Ñ‚Ð°Ñ€Ð¸Ð¹ Ð¾Ð´Ð½Ð¾ÑÑ‚Ñ€Ð¾Ñ‡Ð½Ñ‹Ð¹','ÐšÐ¾Ð¼Ð¼ÐµÐ½Ñ‚Ð°Ñ€Ð¸Ð¹ Ð¼Ð½Ð¾Ð³Ð¾ÑÑ‚Ñ€Ð¾Ñ‡Ð½Ñ‹Ð¹','ÐŸÑ€Ð¾Ð±ÐµÐ»ÑŒÐ½Ñ‹Ðµ ÑÐ¸Ð¼Ð²Ð¾Ð»Ñ‹');
 	
-	// Êëàññ ëåêñè÷åñêîãî-ãåíåðàòîðà
+	// ÐšÐ»Ð°ÑÑ Ð»ÐµÐºÑÐ¸Ñ‡ÐµÑÐºÐ¾Ð³Ð¾-Ð³ÐµÐ½ÐµÑ€Ð°Ñ‚Ð¾Ñ€Ð°
 	class lexer 
 	{
 		
@@ -34,6 +34,8 @@
 		
 		public $addQuote = false;
 		public $addWhite = false;
+		public $addComment = false;
+		public $addShield = true;
 		
 		public $cmd_hex=false;
 		private $hexdata=array('a','b','c','d','e','f','A','B','C','D','E','F');
@@ -84,9 +86,20 @@
 			$this->BLEN = $i+1;
 			$this->data_arr = $array;//print_r($array);
 			
-			return $array; // Âîçâðàùàåò ìàññèâ (0)=>Íàçâàíèå òîêåíà, (1)=>Òèï òîêåíà
+			return $array; // Ð’Ð¾Ð·Ð²Ñ€Ð°Ñ‰Ð°ÐµÑ‚ Ð¼Ð°ÑÑÐ¸Ð² (0)=>ÐÐ°Ð·Ð²Ð°Ð½Ð¸Ðµ Ñ‚Ð¾ÐºÐµÐ½Ð°, (1)=>Ð¢Ð¸Ð¿ Ñ‚Ð¾ÐºÐµÐ½Ð°
 		}
-		
+		private function whiteConvert($s)
+		{
+			if(!$this->addShield) return $s;
+			$symbol = array(
+				"\r"=>'\\r'
+				,"\n"=>'\\n'
+				,"\t"=>'\\t'
+				," "=>'\\+'
+			);
+			if(!array_key_exists($s,$symbol)) return $s;
+			return $symbol[$s];
+		}
 		public function __get($property)
 		{
 			global $T_NAME,$T_TYPE,$T_LINE,$T_QUOTE;
@@ -122,9 +135,8 @@
 			}
 			elseif ($property == 'reset')
 			{
-				$this->cur_next = 0;
-				$this->current;
-				$this->cur_next = -1;
+				$this->LINE_N = 1;
+				$this->load($this->DATA);
 				
 				return $T_TYPE;
 			}
@@ -208,7 +220,7 @@
 			{
 				do
 				{
-					if ($this->addWhite) $token[++$ii] = $s;
+					if ($this->addWhite) $token[++$ii] = $this->whiteConvert($s);
 					if (++$i >= $l)
 					{
 						$this->I=$i;
@@ -249,20 +261,21 @@
 						{
 							if ($l<=++$i)
 							{
-								if (!($this->cmd&COMENT_ON))goto beg1;
-								goto end_func;
+								if ($this->addComment) goto end_func;
+								goto beg1;
 							}
 							if ($tmp == "\r")
 							{
 								if ($data[$i] != "\n") --$i;
 								break;
 							}
-							$token[++$ii]=$tmp;
+							$token[++$ii]=$this->whiteConvert($tmp);
 							$tmp = $data[$i];
 						}
 						++$this->LINE_N;
-						if (!($this->cmd&COMENT_ON))goto beg1;
-						goto end_func;
+						if ($this->addComment)goto end_func;
+						goto beg1;
+						
 					}
 					elseif ($data[$i+1] == '*')
 					{
@@ -274,19 +287,20 @@
 						}
 						while (!($data[$i] == '*'&&$data[$i+1] == '/'))
 						{
-							$token[++$ii]=$data[$i];
+							$token[++$ii]=$this->whiteConvert($data[$i]);
 							
 							if ($data[$i] == "\n")++$this->LINE_N;
 							if ($l<=++$i)
 							{
-								if (!($this->cmd&COMENT_ON))goto beg1;
-								goto end_func;
+								if ($this->addComment)goto end_func;
+								goto beg1;
+								
 							}
 						}
 						++$i;
-						if (!($this->cmd&COMENT_ON))goto beg1;
 						$this->type=CMN_TEXT;
-						goto end_func;
+						if ($this->addComment) goto end_func;
+						goto beg1;
 					} 
 					else goto end1;
 				}
@@ -302,7 +316,7 @@
 			{
 				do
 				{
-					if ($this->addWhite) $token[++$ii] = $s;
+					if ($this->addWhite) $token[++$ii] = $this->whiteConvert($s);
 					if (++$i >= $l)
 					{
 						$this->I=$i;
@@ -421,7 +435,8 @@
 			end_func:
 			
 			$this->I=$i;
-			return $this->token=implode('',$token);
+			$return = implode('',$token);
+			return $this->token=$return;
 		}
 	}
 	

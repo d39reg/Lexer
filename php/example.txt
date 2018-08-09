@@ -6,7 +6,7 @@ ewrthh
 alert(Test+123/234); // okey // dfg
 //wert
 work!=0x123;
-	asdf = "123
+	asdf = "12\"3
 sdf"
 <script
 	src="js/exec.
@@ -14,3 +14,6 @@ sdf"
 		>
 <script src=12></script>
 <script type="HEXScript">FFF</script>
+
+if a==1:
+	pass
