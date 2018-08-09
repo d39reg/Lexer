@@ -15,14 +15,15 @@
 	define('RGS'       ,6);
 	define('CMN_LINE'  ,7);
 	define('CMN_TEXT'  ,8);
-	define('WHT'       ,9);
+	define('WHT1'      ,9);
+	define('WHT2'      ,10);
 	
 	
 	define('COMENT_ON' ,1);
 	define('CONVERT_ON',2);
 	
 	//Debug
-	$_DEBUG_NAME_TYPE = array('Завершение','Число','Строка','Функция','Переменная','Идентификатор','','Комментарий однострочный','Комментарий многострочный','Пробельные символы');
+	$_DEBUG_NAME_TYPE = array('Завершение','Число','Строка','Функция','Переменная','Идентификатор','','Комментарий однострочный','Комментарий многострочный','Переход строки','Пробельные символы');
 	
 	// Класс лексического-генератора
 	class lexer 
@@ -112,17 +113,17 @@
 					case 'next':
 						if (++$this->cur_next>=$this->BLEN)--$this->cur_next;
 						$token = $this->data_arr[$this->cur_next];
-						if (!$this->addWhite && $token[1] == WHT) goto next__;
+						if (!$this->addWhite && ($token[1] == WHT1 || $token[1] == WHT2)) goto next__;
 						break;
 					case 'current':
 						if ($this->cur_next<0)$this->cur_next=0;
 						$token = $this->data_arr[$this->cur_next];
-						if (!$this->addWhite && $token[1] == WHT) goto next__;
+						if (!$this->addWhite && ($token[1] == WHT1 || $token[1] == WHT2)) goto next__;
 						break;
 					case 'back':
 						if (--$this->cur_next<0)$this->cur_next=0;
 						$token = $this->data_arr[$this->cur_next];
-						if (!$this->addWhite && $token[1] == WHT) goto next__;
+						if (!$this->addWhite &&  ($token[1] == WHT1 || $token[1] == WHT2)) goto next__;
 						break;
 				}
 				
@@ -167,10 +168,14 @@
 			return false;
 		}
 		
-		private function white($s)
+		private function white1($s)
 		{
 			if ($s == "\n")++$this->LINE_N; 
-			return $s == "\r"||$s == ' '||$s == "\n"||$s == "\t";
+			return $s == "\r"||$s == "\n";
+		}
+		private function white2($s)
+		{
+			return $s == ' '||$s == "\t";
 		}
 		
 		private function _strchr($a,$b)
@@ -216,7 +221,7 @@
 			$s = $data[$i];
 			$token = array();
 			$ii = -1;
-			if ($this->white($s))
+			if ($this->white1($s))
 			{
 				do
 				{
@@ -230,18 +235,42 @@
 					}
 					$s = $data[$i];
 				}
-				while ($this->white($s));
+				while ($this->white1($s));
 				
 				if ($this->addWhite)
 				{
 					--$i;
-					$this->type = WHT;
+					$this->type = WHT1;
 					$this->LINE[++$this->LINE_I] = $this->LINE_N;
 					goto end_func;
 				}
 				
 			}
-			
+			if ($this->white2($s))
+			{
+				do
+				{
+					if ($this->addWhite) $token[++$ii] = $this->whiteConvert($s);
+					if (++$i >= $l)
+					{
+						$this->I=$i;
+						$this->token='';
+						$this->type=END;
+						return '';
+					}
+					$s = $data[$i];
+				}
+				while ($this->white2($s));
+				
+				if ($this->addWhite)
+				{
+					--$i;
+					$this->type = WHT2;
+					$this->LINE[++$this->LINE_I] = $this->LINE_N;
+					goto end_func;
+				}
+				
+			}
 			if ($l<=$i)
 			{ 
 				$this->type=END; 
@@ -312,7 +341,7 @@
 			
 			$this->LINE[++$this->LINE_I]=$this->LINE_N;
 			
-			if ($this->white($s))
+			if ($this->white1($s))
 			{
 				do
 				{
@@ -326,18 +355,42 @@
 					}
 					$s = $data[$i];
 				}
-				while ($this->white($s));
+				while ($this->white1($s));
 				
 				if ($this->addWhite)
 				{
 					--$i;
-					$this->type = WHT;
+					$this->type = WHT1;
 					$this->LINE[++$this->LINE_I] = $this->LINE_N;
 					goto end_func;
 				}
 				
 			}
-			
+			if ($this->white2($s))
+			{
+				do
+				{
+					if ($this->addWhite) $token[++$ii] = $this->whiteConvert($s);
+					if (++$i >= $l)
+					{
+						$this->I=$i;
+						$this->token='';
+						$this->type=END;
+						return '';
+					}
+					$s = $data[$i];
+				}
+				while ($this->white2($s));
+				
+				if ($this->addWhite)
+				{
+					--$i;
+					$this->type = WHT2;
+					$this->LINE[++$this->LINE_I] = $this->LINE_N;
+					goto end_func;
+				}
+				
+			}
 			if ($l<=$i)
 			{ 
 				$this->type=END; 
@@ -364,6 +417,7 @@
 			elseif ($this->number($s))
 			{
 				$this->cmd_hex = false;
+				$this->cmd_bin = false;
 				$beg_sym = $s;
 				
 				while ($this->number($s)||$s == '.')
@@ -393,8 +447,17 @@
 				{
 					$tmp = implode('',$token);
 					if ($this->cmd&CONVERT_ON) $tmp = hexdec($tmp);
+					else $tmp = '0x'.$tmp;
 					$token = array();
-					$token[0] = '0x'.$tmp;
+					$token[0] = $tmp;
+				}
+				if($this->cmd_bin)
+				{
+					$tmp = implode('',$token);
+					if ($this->cmd&CONVERT_ON) $tmp = bindec($tmp);
+					else $tmp = '0b'.$tmp;
+					$token = array();
+					$token[0] = $tmp;
 				}
 				--$i;
 				$this->type=DEC;
