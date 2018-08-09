@@ -52,7 +52,7 @@
 	$lex->addComment = true;
 	$lex->addQuote = true;
 	$lex->load(fload('example.txt'));
-	echo '<table><tr><td>Имя</td><td>Тип</td><td>Строка</td></tr>';
+	echo 'Режим транслятора<br><table><tr><td>Имя</td><td>Тип</td><td>Строка</td></tr>';
 	while($lex->next)
 	{
 		echo "<tr><td>$T_NAME</td>";
@@ -60,13 +60,14 @@
 		echo "<td>$T_LINE</td></tr>";
 	}
 	echo '</table>';
-	echo "<hr>";
+	echo "<hr>Режим интерпретатора<br>";
 	
 	
 	$lex->addWhite = false;
 	$lex->addComment = false;
 	$lex->addQuote = false;
 	$lex->addShield = false;
+	$lex->convertInteger = true;
 	$lex->reset;
 	
 	echo '<table><tr><td>Имя</td><td>Тип</td><td>Строка</td></tr>';
