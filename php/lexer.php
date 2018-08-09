@@ -418,8 +418,8 @@
 				$this->cmd_hex = false;
 				$this->cmd_bin = false;
 				$begSym = $s;
-				
-				while ($this->number($s)||$s == '.'||in_array($s,array('a','b','c','d','e','f','A','B','C','D','E','F')))
+				$hex = false;
+				while ($this->number($s)||$s == '.'||($this->cmd_hex&&in_array($s,array('a','b','c','d','e','f','A','B','C','D','E','F'))))
 				{
 					$token[++$ii] = $s;
 					if ($l <= ++$i) break;
@@ -442,7 +442,7 @@
 						}
 					}
 				}
-				if($s=='h')
+				/*if($s=='h')
 				{
 					$tmp = implode('',$token);
 					if ($this->convertInteger) $tmp = hexdec($tmp);
@@ -451,6 +451,8 @@
 					$token[0] = $tmp;
 					++$i;
 				}
+				*/
+				
 				if($this->cmd_hex)
 				{
 					$tmp = implode('',$token);
