@@ -12,18 +12,16 @@
 	define('FNC'       ,3);
 	define('VRS'       ,4);
 	define('IND'       ,5);
-	define('RGS'       ,6);
-	define('CMN_LINE'  ,7);
-	define('CMN_TEXT'  ,8);
-	define('WHT1'      ,9);
-	define('WHT2'      ,10);
+	define('CMN_LINE'  ,6);
+	define('CMN_TEXT'  ,7);
+	define('ENT'       ,8);
+	define('WHT'       ,9);
 	
 	
 	define('COMENT_ON' ,1);
-	define('CONVERT_ON',2);
 	
 	//Debug
-	$_DEBUG_NAME_TYPE = array('Завершение','Число','Строка','Функция','Переменная','Идентификатор','','Комментарий однострочный','Комментарий многострочный','Переход строки','Пробельные символы');
+	$_DEBUG_NAME_TYPE = array('Завершение','Число','Строка','Функция','Переменная','Идентификатор','Комментарий однострочный','Комментарий многострочный','Переход строки','Пробельные символы');
 	
 	// Класс лексического-генератора
 	class lexer 
@@ -37,6 +35,8 @@
 		public $addWhite = false;
 		public $addComment = false;
 		public $addShield = true;
+		
+		public $convertInteger = false;
 		
 		public $cmd_hex=false;
 		private $hexdata=array('a','b','c','d','e','f','A','B','C','D','E','F');
@@ -113,17 +113,17 @@
 					case 'next':
 						if (++$this->cur_next>=$this->BLEN)--$this->cur_next;
 						$token = $this->data_arr[$this->cur_next];
-						if (!$this->addWhite && ($token[1] == WHT1 || $token[1] == WHT2)) goto next__;
+						if (!$this->addWhite && ($token[1] == ENT || $token[1] == WHT)) goto next__;
 						break;
 					case 'current':
 						if ($this->cur_next<0)$this->cur_next=0;
 						$token = $this->data_arr[$this->cur_next];
-						if (!$this->addWhite && ($token[1] == WHT1 || $token[1] == WHT2)) goto next__;
+						if (!$this->addWhite && ($token[1] == ENT || $token[1] == WHT)) goto next__;
 						break;
 					case 'back':
 						if (--$this->cur_next<0)$this->cur_next=0;
 						$token = $this->data_arr[$this->cur_next];
-						if (!$this->addWhite &&  ($token[1] == WHT1 || $token[1] == WHT2)) goto next__;
+						if (!$this->addWhite &&  ($token[1] == ENT || $token[1] == WHT)) goto next__;
 						break;
 				}
 				
@@ -185,7 +185,6 @@
 		
 		private function number($s)
 		{
-			if ($this->cmd_hex&&in_array($s,$this->hexdata))return true;
 			return $s>='0'&&$s<='9';
 		}
 		
@@ -240,7 +239,7 @@
 				if ($this->addWhite)
 				{
 					--$i;
-					$this->type = WHT1;
+					$this->type = ENT;
 					$this->LINE[++$this->LINE_I] = $this->LINE_N;
 					goto end_func;
 				}
@@ -265,7 +264,7 @@
 				if ($this->addWhite)
 				{
 					--$i;
-					$this->type = WHT2;
+					$this->type = WHT;
 					$this->LINE[++$this->LINE_I] = $this->LINE_N;
 					goto end_func;
 				}
@@ -360,7 +359,7 @@
 				if ($this->addWhite)
 				{
 					--$i;
-					$this->type = WHT1;
+					$this->type = ENT;
 					$this->LINE[++$this->LINE_I] = $this->LINE_N;
 					goto end_func;
 				}
@@ -385,7 +384,7 @@
 				if ($this->addWhite)
 				{
 					--$i;
-					$this->type = WHT2;
+					$this->type = WHT;
 					$this->LINE[++$this->LINE_I] = $this->LINE_N;
 					goto end_func;
 				}
@@ -418,14 +417,14 @@
 			{
 				$this->cmd_hex = false;
 				$this->cmd_bin = false;
-				$beg_sym = $s;
+				$begSym = $s;
 				
-				while ($this->number($s)||$s == '.')
+				while ($this->number($s)||$s == '.'||in_array($s,array('a','b','c','d','e','f','A','B','C','D','E','F')))
 				{
 					$token[++$ii] = $s;
 					if ($l <= ++$i) break;
 					$s = $data[$i];
-					if (!$ii&&$beg_sym == '0')
+					if (!$ii&&$begSym == '0')
 					{
 						if($s == 'x'||$s == 'X')
 						{
@@ -443,18 +442,27 @@
 						}
 					}
 				}
+				if($s=='h')
+				{
+					$tmp = implode('',$token);
+					if ($this->convertInteger) $tmp = hexdec($tmp);
+					else $tmp = $tmp.'h';
+					$token = array();
+					$token[0] = $tmp;
+					++$i;
+				}
 				if($this->cmd_hex)
 				{
 					$tmp = implode('',$token);
-					if ($this->cmd&CONVERT_ON) $tmp = hexdec($tmp);
+					if ($this->convertInteger) $tmp = hexdec($tmp);
 					else $tmp = '0x'.$tmp;
 					$token = array();
 					$token[0] = $tmp;
 				}
-				if($this->cmd_bin)
+				elseif($this->cmd_bin)
 				{
 					$tmp = implode('',$token);
-					if ($this->cmd&CONVERT_ON) $tmp = bindec($tmp);
+					if ($this->convertInteger) $tmp = bindec($tmp);
 					else $tmp = '0b'.$tmp;
 					$token = array();
 					$token[0] = $tmp;
@@ -487,7 +495,7 @@
 						if ($l <= ++$i) break;
 						$token[++$ii]=$data[$i];
 					}
-					elseif ($s == "\r")++$this->LINE_N;
+					elseif ($s == "\r") ++$this->LINE_N;
 					if ($l<=++$i) break;
 					$s=$data[$i];
 				}
