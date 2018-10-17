@@ -1,3 +1,3 @@
 # Lexer
 
-splitting to lexemes
+Splitting to lexemes.
