@@ -108,7 +108,7 @@
 				"\r"=>'\\r'
 				,"\n"=>'\\n'
 				,"\t"=>'\\t'
-				," "=>'\\+'
+				," "=>'\\x20'
 			);
 			if(!array_key_exists($s,$symbol)) return $s;
 			return $symbol[$s];
