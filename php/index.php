@@ -51,6 +51,7 @@
 	$lex->addWhite = true;
 	$lex->addComment = true;
 	$lex->addQuote = true;
+	//$lex->addSpecialSymbols = false;
 	$lex->load(fload('example.txt'));
 	echo 'Режим транслятора<br><table><tr><td>Имя</td><td>Тип</td><td>Строка</td></tr>';
 	while($lex->next)
@@ -66,7 +67,7 @@
 	$lex->addWhite = false;
 	$lex->addComment = false;
 	$lex->addQuote = false;
-	$lex->addShield = false;
+	$lex->addSpecialSymbols = false;
 	$lex->convertInteger = true;
 	$lex->reset;
 	

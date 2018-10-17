@@ -34,7 +34,7 @@
 		public $addQuote = false;
 		public $addWhite = false;
 		public $addComment = false;
-		public $addShield = true;
+		public $addSpecialSymbols = true;
 		
 		public $convertInteger = false;
 		
@@ -103,7 +103,7 @@
 		}
 		private function whiteConvert($s)
 		{
-			if(!$this->addShield) return $s;
+			if(!$this->addSpecialSymbols) return $s;
 			$symbol = array(
 				"\r"=>'\\r'
 				,"\n"=>'\\n'
