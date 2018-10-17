@@ -44,26 +44,38 @@
 		public $cmd_bin=false;
 		
 		public  $BLEN     = 0;
-		private $DATA     = '';
+		private $DATA     = [];
 		private $I        = -1;
 		private $LEN      = 0;
 		private $token    = '';
 		private $type     = null;
 		public  $quote    = '';
 		public  $cmd      = 0;
+		public  $encode   = '';
 		private $cur_next = -1;
 		private $data_arr = array();
 
 		public function load($code)
 		{
-			$this->DATA = $code;
-			$this->I=-1;
-			$this->LEN=strlen($code);
-			$this->token='';
+			if(gettype($code) == 'string')
+			{
+				$this->encode = mb_detect_encoding($code);
+				$code = mb_convert_encoding($code, 'UTF-8', $this->encode);
+				$i = 0; $l = strlen($code);
+				while(true)
+				{
+					$s = mb_substr($code, $i, 1, $this->encode);
+					if($s == null) break;
+					$this->DATA[$i++] = $s;
+				}
+				$this->LEN = count($this->DATA);
+			}
+			$this->I = -1;
+			$this->token = '';
 			$this->cur_next = -1;
-			$this->type=null;
-			$array=array();
-			$i=-1;
+			$this->type = null;
+			$array = array();
+			$i = -1;
 			
 			$this->_next();
 			while ($this->type != END)
@@ -100,6 +112,12 @@
 			);
 			if(!array_key_exists($s,$symbol)) return $s;
 			return $symbol[$s];
+		}
+		private function translit($str)
+		{
+			$rus = array('А', 'Б', 'В', 'Г', 'Д', 'Е', 'Ё', 'Ж', 'З', 'И', 'Й', 'К', 'Л', 'М', 'Н', 'О', 'П', 'Р', 'С', 'Т', 'У', 'Ф', 'Х', 'Ц', 'Ч', 'Ш', 'Щ', 'Ъ', 'Ы', 'Ь', 'Э', 'Ю', 'Я', 'а', 'б', 'в', 'г', 'д', 'е', 'ё', 'ж', 'з', 'и', 'й', 'к', 'л', 'м', 'н', 'о', 'п', 'р', 'с', 'т', 'у', 'ф', 'х', 'ц', 'ч', 'ш', 'щ', 'ъ', 'ы', 'ь', 'э', 'ю', 'я');
+			$lat = array('A', 'B', 'V', 'G', 'D', 'E', 'E', 'Gh', 'Z', 'I', 'Y', 'K', 'L', 'M', 'N', 'O', 'P', 'R', 'S', 'T', 'U', 'F', 'H', 'C', 'Ch', 'Sh', 'Sch', 'Y', 'Y', 'Y', 'E', 'Yu', 'Ya', 'a', 'b', 'v', 'g', 'd', 'e', 'e', 'gh', 'z', 'i', 'y', 'k', 'l', 'm', 'n', 'o', 'p', 'r', 's', 't', 'u', 'f', 'h', 'c', 'ch', 'sh', 'sch', 'y', 'y', 'y', 'e', 'yu', 'ya');
+			return str_replace($rus, $lat, $str);
 		}
 		public function __get($property)
 		{
@@ -138,7 +156,6 @@
 			{
 				$this->LINE_N = 1;
 				$this->load($this->DATA);
-				
 				return $T_TYPE;
 			}
 		}
@@ -188,7 +205,7 @@
 			return $s>='0'&&$s<='9';
 		}
 		
-		private function word($s){return ($s>='A')&&($s<='z')&&!($this->_strchr('[\]^`',$s));}
+		private function word($s){return ((($s>='A')&&($s<='z'))||(($s>=chr(192))&&($s<=chr(255))))&&!($this->_strchr('[\]^`',$s));}
 		
 		public function current_line()
 		{
